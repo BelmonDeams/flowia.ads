@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  clerkId     String   @unique
+  email       String   @unique
+  name        String
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ownedWorkspaces Workspace[]
+  memberships WorkspaceMember[]
+
+  @@index([clerkId])
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(STARTER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ownerId   String
+  owner     User     @relation(fields:[ownerId], references:[id])
+  members   WorkspaceMember[]
+  campaigns Campaign[]
+  connections AdAccountConnection[]
+  subscription Subscription?
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String     @id @default(cuid())
+  role        MemberRole @default(VIEWER)
+  createdAt   DateTime   @default(now())
+  userId      String
+  user        User       @relation(fields:[userId], references:[id])
+  workspaceId String
+  workspace   Workspace  @relation(fields:[workspaceId], references:[id])
+
+  @@unique([userId, workspaceId])
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  hotmartId        String?   @unique
+  plan             Plan
+  status           SubStatus @default(ACTIVE)
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  workspaceId      String    @unique
+  workspace        Workspace @relation(fields:[workspaceId], references:[id])
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  platform    Platform
+  status      CampaignStatus @default(DRAFT)
+  budget      Float
+  location    String
+  spent       Float          @default(0)
+  impressions Int            @default(0)
+  clicks      Int            @default(0)
+  ctr         Float          @default(0)
+  conversions Int            @default(0)
+  roas        Float
